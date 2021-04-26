@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.getcwd()
 
 def first_alpha(s):
     """
