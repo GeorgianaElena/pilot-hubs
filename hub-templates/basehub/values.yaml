@@ -28,6 +28,17 @@ nfsPVC:
     baseShareName: /export/home-01/homes/
 
 jupyterhub:
+  staff:
+    names:
+      google:
+        'yuvipanda@gmail.com',
+        'colliand@gmail.com',
+        'choldgraf@gmail.com',
+        'georgiana.dolocan@gmail.com'
+      github:
+        'yuvipanda',
+        'choldgraf',
+        'GeorgianaElena'
   custom:
     cloudResources:
       provider: null
@@ -318,6 +329,8 @@ jupyterhub:
             return resp
 
         c.JupyterHub.authenticator_class = CustomOAuthenticator
+        # TODO: find selected authenticator
+        c.CustomOAuthenticator.admin_users = get_config('staff.names.google')
 
       07-cloud-storage-bucket: |
         from z2jh import get_config
