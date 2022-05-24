@@ -21,6 +21,8 @@ RUN pip install --no-cache --upgrade jupyterhub-kubespawner==1.1.2
 # Brings in https://github.com/jupyterhub/oauthenticator/pull/498
 RUN pip install --no-cache --upgrade git+https://github.com/yuvipanda/oauthenticator@7f3fdc0a14d06f1a081c23b1ceb7060a940d11f8
 
+RUN pip install escapism
+
 USER root
 RUN mkdir -p /usr/local/etc/jupyterhub-configurator
 
