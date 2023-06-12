@@ -87,7 +87,7 @@ jobs:
         # Action repo: https://github.com/dorny/paths-filter
         # Fork of the repo above that we use: https://github.com/frouioui/paths-filter/tree/main
         # In order to take advantage of https://github.com/dorny/paths-filter/pull/133
-        uses: frouioui/paths-filter@main
+        uses: frouioui/paths-filter@[245527a2efa6022ee4d6d9769af3a255ecf926fd]
         id: changed-files
         with:
           token: ""
