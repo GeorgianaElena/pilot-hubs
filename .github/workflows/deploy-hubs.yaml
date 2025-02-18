@@ -229,6 +229,7 @@ jobs:
       failure_openscapes: ${{ steps.declare-failure.outputs.failure_openscapes }}
       failure_opensci: ${{ steps.declare-failure.outputs.failure_opensci }}
       failure_projectpythia: ${{ steps.declare-failure.outputs.failure_projectpythia }}
+      failure_projectpythia-binder: ${{ steps.declare-failure.outputs.failure_projectpythia-binder }}
       failure_queensu: ${{ steps.declare-failure.outputs.failure_queensu }}
       failure_smithsonian: ${{ steps.declare-failure.outputs.failure_smithsonian }}
       failure_strudel: ${{ steps.declare-failure.outputs.failure_strudel }}
