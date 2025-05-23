@@ -23,6 +23,40 @@ jupyterhub:
     # NOTE the only difference between profileList for staging and prod is the image tags
     # prod should always have the latest official release and staging has develop unless we are 
     # actively doing a release in which case staging images point to our release tag 
+    initContainers:
+    - &volume_ownership_fix_initcontainer
+      name: volume-mount-ownership-fix
+      image: busybox:1.36.1
+      command:
+      - sh
+      - -c
+      - >
+        id &&
+        chown 1000:1000 /home/jovyan /home/jovyan/shared /home/jovyan/shared-public /home/jovyan/shared-group &&
+        if [ -d "/home/jovyan/shared-group" ] && [ "$(ls -A /home/jovyan/shared-group)" ]; then
+          chown 1000:1000 /home/jovyan/shared-group/* || true;
+        fi &&
+        ls -lhd /home/jovyan
+      securityContext:
+        runAsUser: 0
+      volumeMounts:
+      - name: home
+        mountPath: /home/jovyan
+        subPath: '{escaped_username}'
+          # Mounted without readonly attribute here,
+          # so we can chown it appropriately
+      - name: home
+        mountPath: /home/jovyan/shared
+        subPath: _shared
+      - name: home
+        mountPath: /home/jovyan/shared-public
+        subPath: _shared-public
+      - name: home
+        mountPath: /home/jovyan/shared-group
+        subPath: _shared-group
+    storage:
+      type: null
+
     profileList:
     - display_name: Choose your environment and resources
       default: true
@@ -245,10 +279,92 @@ jupyterhub:
           nvidia.com/gpu: '1'
   hub:
     config:
+<<<<<<< HEAD
       GenericOAuthenticator:
         oauth_callback_url: https://staging.hub.maap-project.org/hub/oauth_callback
         token_url: https://keycloak.delta-backend.xyz/realms/maap/protocol/openid-connect/token
         authorize_url: https://keycloak.delta-backend.xyz/realms/maap/protocol/openid-connect/auth
+=======
+      JupyterHub:
+        authenticator_class: generic-oauth
+      KubeSpawner:
+        volumes:
+          00-home-nfs:
+            name: home
+            persistentVolumeClaim:
+              claimName: home-nfs
+          01-dev-shm:
+            name: dev-shm
+            emptyDir:
+              medium: Memory
+        volume_mounts:
+          00-home-nfs:
+            name: home
+            mountPath: /home/jovyan
+            subPath: "{escaped_username}"
+          01-home-shared:
+            name: home
+            mountPath: /home/jovyan/shared
+            subPath: _shared
+            readOnly: true
+          02-home-shared-public:
+            name: home
+            mountPath: /home/jovyan/shared-public
+            subPath: _shared-public
+          03-dev-shm:
+            name: dev-shm
+            mountPath: /dev/shm
+        group_overrides:
+          00-group-CPU-L-extra-volume-mounts:
+            groups: ["CPU:L"]
+            spawner_override:
+              volume_mounts:
+                00-group-CPU-L-shared-dir:
+                  name: home
+                  mountPath: /home/jovyan/shared-group/CPU_L
+                  subPath: _shared-group/CPU_L
+          01-group-GPU-T4-extra-volume-mounts:
+            groups: ["GPU:T4"]
+            spawner_override:
+              volume_mounts:
+                00-group-GPU-T4-shared-dir:
+                  name: home
+                  mountPath: /home/jovyan/shared-group/GPU_T4
+                  subPath: _shared-group/GPU_T4
+
+      Authenticator:
+        admin_users: []
+      GitHubOAuthenticator:
+        oauth_callback_url: https://staging.hub.maap.2i2c.cloud/hub/oauth_callback
+      GenericOAuthenticator:
+        oauth_callback_url: https://staging.hub.maap.2i2c.cloud/hub/oauth_callback
+        token_url: https://keycloak.delta-backend.xyz/realms/veda/protocol/openid-connect/token
+        authorize_url: https://keycloak.delta-backend.xyz/realms/veda/protocol/openid-connect/auth
+        # We want to get user data from the JWT that's the id token,
+        # not from a separate userdata API call
+        userdata_from_id_token: true
+        scope:
+        - basic
+        - profile
+        - openid
+        username_claim: preferred_username
+        manage_groups: true
+        auth_state_groups_key: oauth_user.roles
+        admin_groups:
+        - Admin
+        # Being granted *any* jupyterhub related role should allow you
+        # to login
+        allowed_groups:
+        - Admin
+        - CPU:XS
+        - CPU:S
+        - CPU:M
+        - CPU:L
+        - CPU:XL
+        - CPU:XXL
+        - CPU:XXXL
+        - GPU:T4
+>>>>>>> 28bfbf4e0 (Try defining volumes and volume mounts as dict)
   ingress:
     hosts: [staging.hub.maap-project.org]
     tls:
