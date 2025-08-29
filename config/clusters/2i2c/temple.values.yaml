@@ -72,6 +72,7 @@ jupyterhub-home-nfs:
       limits:
         cpu: 0.4
         memory: 2G
+    enabled: true
 nfs:
   pv:
     serverIP: storage-quota-home-nfs.temple.svc.cluster.local

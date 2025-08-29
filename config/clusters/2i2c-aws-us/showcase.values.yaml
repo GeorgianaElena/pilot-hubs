@@ -15,6 +15,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 20
+      enabled: true
   jupyterhub:
     ingress:
       hosts: [showcase.2i2c.cloud]

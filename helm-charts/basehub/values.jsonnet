@@ -14,6 +14,7 @@ local emitDaskHubCompatibleConfig(basehubConfig) =
 
 local jupyterhubHomeNFSResources = {
   quotaEnforcer: {
+    enabled: false,
     config: {
       QuotaManager: {
         paths: ['/export/%s' % hub_name],

@@ -53,3 +53,4 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 200
+      enabled: true

@@ -12,6 +12,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 250
+      enabled: true
   jupyterhub:
     custom:
       jupyterhubConfigurator:

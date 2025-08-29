@@ -16,6 +16,7 @@ jupyterhub-home-nfs:
     config:
       QuotaManager:
         hard_quota: 35
+    enabled: true
 jupyterhub:
   ingress:
     hosts: [ds.lis.2i2c.cloud]

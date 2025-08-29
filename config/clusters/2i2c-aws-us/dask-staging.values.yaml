@@ -12,6 +12,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 10
+      enabled: true
   jupyterhub:
     ingress:
       hosts: [dask-staging.aws.2i2c.cloud]

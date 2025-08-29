@@ -82,6 +82,7 @@ jupyterhub-home-nfs:
       QuotaManager:
         hard_quota: 1
 
+    enabled: true
 binderhub-service:
   config:
     BinderHub:

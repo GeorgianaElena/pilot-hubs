@@ -112,6 +112,7 @@ jupyterhub-home-nfs:
     config:
       QuotaManager:
         hard_quota: 100
+    enabled: true
 nfs:
   pv:
     serverIP: storage-quota-home-nfs.labi.svc.cluster.local

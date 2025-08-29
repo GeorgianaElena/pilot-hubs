@@ -50,6 +50,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 50
+      enabled: true
   nfs:
     pv:
       serverIP: 10.100.172.188

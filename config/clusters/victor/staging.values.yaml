@@ -23,6 +23,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 5
+      enabled: true
   jupyterhub:
     ingress:
       hosts: [staging.hub.victorproject.org]

@@ -10,6 +10,7 @@ jupyterhub-home-nfs:
       QuotaManager:
         hard_quota: 1 # in GB
 
+    enabled: true
 jupyterhub:
   ingress:
     hosts:

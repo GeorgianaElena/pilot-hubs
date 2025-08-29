@@ -12,6 +12,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 20 # in GB
+      enabled: true
   jupyterhub:
     ingress:
       hosts: [staging.ciroh.awi.2i2c.cloud]

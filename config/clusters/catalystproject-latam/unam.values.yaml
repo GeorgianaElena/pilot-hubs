@@ -146,3 +146,4 @@ jupyterhub-home-nfs:
     config:
       QuotaManager:
         hard_quota: 950
+    enabled: true

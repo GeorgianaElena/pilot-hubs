@@ -9,6 +9,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 1 # in GB
+      enabled: true
   jupyterhub:
     ingress:
       hosts: [staging.smithsonian.2i2c.cloud]

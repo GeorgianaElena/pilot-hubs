@@ -40,3 +40,4 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 400 # in GB
+      enabled: true

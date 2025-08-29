@@ -345,3 +345,4 @@ jupyterhub-home-nfs:
     config:
       QuotaManager:
         hard_quota: 1
+    enabled: true

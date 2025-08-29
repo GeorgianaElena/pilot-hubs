@@ -28,6 +28,7 @@ jupyterhub-home-nfs:
     config:
       QuotaManager:
         hard_quota: 1
+    enabled: true
   eks:
     volumeId: vol-0c891ce78c5d76b2b
 nfs:

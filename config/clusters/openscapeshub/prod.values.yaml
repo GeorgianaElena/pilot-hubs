@@ -37,6 +37,7 @@ basehub:
       config:
         QuotaManager:
           hard_quota: 100
+      enabled: true
     eks:
       volumeId: vol-0cddd71981a7ff6ba
   nfs:
