@@ -3,6 +3,7 @@ Actions available when deploying many JupyterHubs to many Kubernetes clusters
 """
 
 import base64
+import json
 import os
 import subprocess
 import sys
@@ -111,6 +112,342 @@ def deploy(
                     f"{i+1} / {len(hubs)}: Deploying hub {hub.spec['name']}..."
                 )
                 hub.deploy(dask_gateway_version, debug, dry_run)
+
+
+@app.command()
+def get_nfs_hubs(
+    cluster_name: str = typer.Argument(..., help="Name of cluster to operate on"),
+):
+    """
+    Deploy one or more hubs in a given cluster
+    """
+    yaml2 = YAML(typ="rt")
+    yaml2.width = 4096
+
+    cluster = Cluster.from_name(cluster_name)
+    hub_list = ""
+
+    with cluster.auth():
+        hubs = cluster.hubs
+        for i, hub in enumerate(hubs):
+            print(hub.spec["name"])
+            hub_config = cluster.config_dir / f"{hub.spec['name']}.values.yaml"
+            with open(hub_config, "r+") as f:
+                config = yaml2.load(f)
+                if "basehub" in config:
+                    basehub_config = config["basehub"]
+                else:
+                    basehub_config = config
+
+                jupyterhub_home_nfs = basehub_config.get("jupyterhub-home-nfs", {})
+                if jupyterhub_home_nfs:
+                    nfs = basehub_config.get("nfs", {})
+                    if nfs:
+                        hub_list += f'"{hub.spec["name"]}", '
+    print(hub_list)
+
+
+@app.command()
+def get_not_migrated(
+    cluster_name: str = typer.Argument(..., help="Name of cluster to operate on"),
+):
+    """
+    Deploy one or more hubs in a given cluster
+    """
+    yaml2 = YAML(typ="rt")
+    yaml2.width = 4096
+
+    cluster = Cluster.from_name(cluster_name)
+    # hub_list = ""
+
+    with cluster.auth():
+        hubs = cluster.hubs
+        for i, hub in enumerate(hubs):
+            hub_name = hub.spec["name"]
+            hub_config = cluster.config_dir / f"{hub.spec['name']}.values.yaml"
+            with open(hub_config, "r+") as f:
+                config = yaml2.load(f)
+                if "basehub" in config:
+                    basehub_config = config["basehub"]
+                else:
+                    basehub_config = config
+
+                jupyterhub_home_nfs = basehub_config.get("jupyterhub-home-nfs", {})
+                if jupyterhub_home_nfs:
+                    try:
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "--namespace",
+                                hub_name,
+                                "get",
+                                "svc",
+                                "storage-quota-home-nfs",
+                                "-o=jsonpath={.spec.clusterIP}",
+                            ]
+                        )
+                        # print_colour(f"{cluster_name}:{hub_name} migrated", "green")
+                    except subprocess.CalledProcessError as e:
+                        print_colour(f"{cluster_name}:{hub_name} not migrated", "red")
+
+
+@app.command()
+def migrate_at_once(
+    cluster_name: str = typer.Argument(..., help="Name of cluster to operate on"),
+    hub_name: str = typer.Argument("all", help="Name of cluster to operate on"),
+):
+    """
+    Deploy one or more hubs in a given cluster
+    """
+    yaml2 = YAML(typ="rt")
+    yaml2.width = 4096
+
+    cluster = Cluster.from_name(cluster_name)
+    hub_list = ""
+
+    with cluster.auth():
+        hubs = cluster.hubs
+        if hub_name != "all":
+            hubs = [next((hub for hub in hubs if hub.spec["name"] == hub_name), None)]
+        for i, hub in enumerate(hubs):
+            hub_name = hub.spec["name"]
+            hub_config = cluster.config_dir / f"{hub.spec['name']}.values.yaml"
+            with open(hub_config, "r+") as f:
+                config = yaml2.load(f)
+                if "basehub" in config:
+                    basehub_config = config["basehub"]
+                else:
+                    basehub_config = config
+
+                jupyterhub_home_nfs = basehub_config.get("jupyterhub-home-nfs", {})
+                if jupyterhub_home_nfs:
+                    nfs = basehub_config.get("nfs", {})
+                    if nfs:
+                        print_colour(f"Deploying {hub_name}")
+                        active_users = len(
+                            [
+                                l
+                                for l in subprocess.check_output(
+                                    [
+                                        "kubectl",
+                                        "--namespace",
+                                        hub_name,
+                                        "get",
+                                        "pod",
+                                        "-l",
+                                        "component=singleuser-server",
+                                        "-o",
+                                        "name",
+                                    ]
+                                )
+                                .decode()
+                                .strip()
+                                .split("\n")
+                                if l.startswith("pod/")
+                            ]
+                        )
+
+                        if active_users != 0:
+                            print_colour(
+                                f"{active_users} users are currently on, kick them out or wait",
+                                "red",
+                            )
+                            sys.exit(1)
+                        else:
+                            print_colour(f"No active users on {hub_name}, good to go")
+
+                        # Bring the hub down
+                        # subprocess.check_call([
+                        #     "kubectl", "--namespace", hub_name,
+                        #     "delete", "svc", "proxy-public"
+                        # ])
+                        subprocess.check_call(
+                            [
+                                "deployer",
+                                "deploy",
+                                cluster_name,
+                                hub_name,
+                            ]
+                        )
+
+                        # Bring the hub down
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "--namespace",
+                                hub_name,
+                                "delete",
+                                "svc",
+                                "proxy-public",
+                            ]
+                        )
+                        pv_obj = json.loads(
+                            subprocess.check_output(
+                                [
+                                    "kubectl",
+                                    "get",
+                                    "pv",
+                                    f"{hub_name}-home-nfs",
+                                    "-o",
+                                    "json",
+                                ]
+                            ).decode()
+                        )
+                        print_colour(
+                            pv_obj["spec"]["persistentVolumeReclaimPolicy"], "yellow"
+                        )
+                        if pv_obj["spec"]["persistentVolumeReclaimPolicy"] != "Retain":
+                            print_colour(
+                                f"PV {hub_name}-home-nfs doesn't have reclaimpolicy set to retain. Fix that and try again",
+                                "red",
+                            )
+                            exit()
+
+                        nfs_ip = (
+                            subprocess.check_output(
+                                [
+                                    "kubectl",
+                                    "--namespace",
+                                    hub_name,
+                                    "get",
+                                    "svc",
+                                    "storage-quota-home-nfs",
+                                    "-o=jsonpath={.spec.clusterIP}",
+                                ]
+                            )
+                            .decode()
+                            .strip()
+                        )
+                        print_colour(nfs_ip, "yellow")
+
+                        basehub_config.setdefault("nfs", {})["pv"] = {
+                            "serverIP": nfs_ip
+                        }
+                        f.seek(0)
+                        f.truncate(0)
+                        yaml2.dump(config, f)
+
+                        ###############
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "delete",
+                                "pv",
+                                f"{hub_name}-home-nfs",
+                                "--wait=false",
+                            ]
+                        )
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "--namespace",
+                                hub_name,
+                                "delete",
+                                "pvc",
+                                "home-nfs",
+                                "--wait=false",
+                            ]
+                        )
+                        ###############
+
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "--namespace",
+                                hub_name,
+                                "delete",
+                                "pod",
+                                "-l",
+                                "component=shared-dirsize-metrics",
+                            ]
+                        )
+                        subprocess.check_call(
+                            [
+                                "kubectl",
+                                "--namespace",
+                                hub_name,
+                                "delete",
+                                "pod",
+                                "-l",
+                                "component=shared-volume-metrics",
+                            ]
+                        )
+
+                        ############
+                        subprocess.check_call(
+                            [
+                                "deployer",
+                                "deploy",
+                                cluster_name,
+                                hub_name,
+                                "--skip-refresh",
+                            ]
+                        )
+                        subprocess.check_call(
+                            [
+                                "deployer",
+                                "run-hub-health-check",
+                                cluster_name,
+                                hub_name,
+                            ]
+                        )
+
+
+@app.command()
+def update_config(
+    cluster_name: str = typer.Argument(..., help="Name of cluster to operate on"),
+):
+    """
+    Deploy one or more hubs in a given cluster
+    """
+    yaml2 = YAML(typ="rt")
+    yaml2.width = 4096
+
+    cluster = Cluster.from_name(cluster_name)
+    hub_list = ""
+
+    with cluster.auth():
+        hubs = cluster.hubs
+        for i, hub in enumerate(hubs):
+            print(hub.spec["name"])
+            if hub.spec["name"] != "utoronto":
+                hub_config = cluster.config_dir / f'{hub.spec["name"]}.values.yaml'
+                with open(hub_config, "r+") as f:
+                    config = yaml2.load(f)
+                    if "basehub" in config:
+                        basehub_config = config["basehub"]
+                    else:
+                        basehub_config = config
+
+                    jupyterhub_home_nfs = basehub_config.get("jupyterhub-home-nfs", {})
+                    if jupyterhub_home_nfs:
+                        # nfs = basehub_config.get("nfs", {})
+                        # if nfs:
+                        #     # print("Yes")
+                        #     # hub_list += (f'\"{hub.spec["name"]}\", ')
+                        #     nfs["pv"][
+                        #         "serverIP"
+                        #     ] = f'storage-quota-home-nfs.{hub.spec["name"]}.svc.cluster.local'
+                        # print(hub.spec["name"])
+                        # print(hub_list)
+                        quota_enforcer_config = basehub_config[
+                            "jupyterhub-home-nfs"
+                        ].get("quotaEnforcer", {})
+                        quota_config = (
+                            basehub_config["jupyterhub-home-nfs"]
+                            .get("quotaEnforcer", {})
+                            .get("config", {})
+                            .get("QuotaManager", {})
+                            .get("hard_quota", None)
+                        )
+                        if quota_config:
+                            quota_enforcer_config.setdefault("enabled", True)
+                            print(quota_enforcer_config)
+                            print(f"{cluster_name}:{hub.spec['name']}")
+
+                        f.seek(0)
+                        f.truncate(0)
+                        yaml2.dump(config, f)
 
 
 @app.command()
