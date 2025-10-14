@@ -63,6 +63,30 @@ function(VARS_2I2C_AWS_ACCOUNT_ID=null)
     },
   };
 
+  local makeServersFailureAlert = function(
+    summary,
+    severity,
+    labels={},
+                                  ) {
+    // Structure is documented in https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+    alert: 'At least two servers had failed to start',
+    expr: |||
+      sum by (namespace) (
+        sum without(pod, instance, job) (
+          increase(jupyterhub_server_spawn_duration_seconds_count{status="failure"}[11m])
+        )
+      ) >= 2
+    |||,
+    'for': '1m',
+    labels: {
+      cluster: cluster_name,
+      severity: severity,
+    } + labels,
+    annotations: {
+      summary: summary,
+    },
+  };
+
   local diskIOApproachingSaturation = function(
     name,
     severity,
@@ -216,8 +240,12 @@ function(VARS_2I2C_AWS_ACCOUNT_ID=null)
               name: 'Server Startup Failure',
               rules: [
                 makeServerStartupFailureAlert(
-                  'Outage alert: Server Startup failed: cluster %s hub:{{ $labels.namespace }}' % [cluster_name],
+                  'Server Startup failed: cluster %s hub:{{ $labels.namespace }}' % [cluster_name],
                   'same day action needed'
+                ),
+                makeServersFailureAlert(
+                  'At least two servers have failed to start: cluster %s hub:{{ $labels.namespace }}' % [cluster_name],
+                  'take immediate action',
                 ),
               ],
             },
