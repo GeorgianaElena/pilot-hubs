@@ -13,13 +13,7 @@ dependencies:
   # cost. If we ever have multiple prometheii on the same cluster, we can
   # reconsider using the operator.
   - name: prometheus
-<<<<<<< HEAD
     version: 28.9.0
-=======
-    # NOTE: CHECK INSTRUCTIONS UNDER prometheus.server.command IN support/values.yaml
-    # EACH TIME THIS VERSION IS BUMPED!
-    version: 27.52.0
->>>>>>> 501b59924 (Bump charts ['prometheus', 'grafana', 'ingress-nginx', 'cluster-autoscaler', 'cryptnono'] to versions ['27.52.0', '10.4.3', '4.14.1', '9.54.0', '0.3.2-0.dev.git.252.hffedab6'], respectively)
     repository: https://prometheus-community.github.io/helm-charts
 
   # Grafana for dashboarding of metrics.
@@ -33,11 +27,7 @@ dependencies:
   # that references this controller.
   # https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
   - name: ingress-nginx
-<<<<<<< HEAD
     version: 4.14.3
-=======
-    version: 4.14.1
->>>>>>> 501b59924 (Bump charts ['prometheus', 'grafana', 'ingress-nginx', 'cluster-autoscaler', 'cryptnono'] to versions ['27.52.0', '10.4.3', '4.14.1', '9.54.0', '0.3.2-0.dev.git.252.hffedab6'], respectively)
     repository: https://kubernetes.github.io/ingress-nginx
 
   # This is the ingress maintained by nginx, rather than the one maintained by the
