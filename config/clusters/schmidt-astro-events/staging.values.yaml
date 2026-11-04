@@ -2,6 +2,30 @@ nfs:
   pv:
     serverIP: 10.100.140.233
 jupyterhub:
+  hub:
+    extraConfig:
+      one-user-websocket-config.py: |
+        import json
+        user = "georgianaelena@2i2c.org"
+
+        async def add_websocket_config(spawner):
+            print(spawner.user.name)
+            if spawner.user.name != user:
+                return
+
+            spawner.volumes["websocket-config"] = {
+                "name": "websocket-config",
+                "secret": {"secretName": "websocket-config"}
+            }
+
+            spawner.volume_mounts["websocket-config"] = {
+                "name": "websocket-config",
+                "mountPath": "/etc/jupyter/jupyter_server_config.json",
+                "subPath": "jupyter_server_config.json",
+                "readOnly": True
+            }
+
+        c.KubeSpawner.pre_spawn_hook = add_websocket_config
   custom:
     litellmKeyProvisioner:
       hubName: staging.schmidt-astro-events.2i2c.cloud
